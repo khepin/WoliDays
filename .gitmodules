@@ -1,3 +1,6 @@
 [submodule "vendor/Silex"]
 	path = vendor/Silex
 	url = git://github.com/fabpot/Silex
+[submodule "vendor/Doctrine"]
+	path = vendor/Doctrine
+	url = git://github.com/doctrine/dbal

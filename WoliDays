@@ -1,0 +1,342 @@
+1. Setup the environment
+
+Webserver
+    - php 5.3
+    - vhost
+    - point vhost to web_dir of project
+        on ubuntu:
+            cd /etc/apache2/sites-available/
+            sudo cp default wolidays
+            sudo gedit wolidays
+            <VirtualHost *:80>
+	
+	            ServerAdmin webmaster@localhost
+	            ServerName wolidays.loc
+
+	            DocumentRoot /home/pink/public_html/wolidays/web/
+	            <Directory />
+		            Options FollowSymLinks
+		            AllowOverride None
+	            </Directory>
+	            <Directory /home/pink/public_html/wolidays/web/>
+		            Options Indexes FollowSymLinks MultiViews
+		            AllowOverride None
+		            Order allow,deny
+		            allow from all
+	            </Directory>
+	            <Location />
+		            <IfModule mod_rewrite.c>
+		              RewriteEngine On
+
+		              # we skip all files with .something
+		              RewriteCond %{REQUEST_URI} \..+$
+		              RewriteCond %{REQUEST_URI} !\.html$
+		              RewriteRule .* - [L]
+
+		              # we check if the .html version is here (caching)
+		              RewriteRule ^$ index.html [QSA]
+		              RewriteRule ^([^.]+)$ $1.html [QSA]
+		              RewriteCond %{REQUEST_FILENAME} !-f
+
+		              # no, so we redirect to our front web controller
+		              RewriteRule ^(.*)$ index.php [QSA,L]
+		            </IfModule>
+	            </Location>
+
+	            ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
+	            <Directory "/usr/lib/cgi-bin">
+		            AllowOverride None
+		            Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
+		            Order allow,deny
+		            Allow from all
+	            </Directory>
+
+	            ErrorLog ${APACHE_LOG_DIR}/error.log
+
+	            # Possible values include: debug, info, notice, warn, error, crit,
+	            # alert, emerg.
+	            LogLevel warn
+
+	            CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+                Alias /doc/ "/usr/share/doc/"
+                <Directory "/usr/share/doc/">
+                    Options Indexes MultiViews FollowSymLinks
+                    AllowOverride None
+                    Order deny,allow
+                    Deny from all
+                    Allow from 127.0.0.0/255.0.0.0 ::1/128
+                </Directory>
+	
+
+            </VirtualHost>
+        sudo a2ensite wolidays
+        sudo /etc/init.d/apache2 restart
+        
+Host file:
+    sudo gedit /etc/hosts
+    127.0.0.1	wolidays.loc
+Database
+Install git = because Silex = on git = easier
+Setup git repository online (github? gitorious? ...)
+Folders:
+    - wolidays
+    - web
+    - vendor
+    - src
+    - touch web/index.php
+    - touch src/wolidays.php
+
+git init
+git submodule add git://github.com/fabpot/Silex vendor/Silex
+cd vendor/Silex
+git submodule init
+git submodule update
+git add *
+git status
+    # On branch master
+    #
+    # Initial commit
+    #
+    # Changes to be committed:
+    #   (use "git rm --cached <file>..." to unstage)
+    #
+    #	new file:   .gitmodules
+    #	new file:   src/wolidays.php
+    #	new file:   vendor/Silex
+    #	new file:   web/index.php
+    #
+
+git commit -m 'Initial commit: create dir structure, import submodules.'
+
+edit index.php to add phpinfo();
+test website
+git remote add origin git@github.com:khepin/WoliDays.git
+git push origin master  
+
+!!! Add a readme !!! ===> http://github.com/github/markup#readme
+
+2. Project details
+This project will offer a very simple webservice and webapp to deal with holidays / working days.
+Often needed for work, don't repeat such a service inside every app. Especially if you start needing it in many apps.
+Offer subscriber possibility so ppl can upload their own calendars !!! everything will still be public !!!
+Super simple return format
+Planned methods:
+    /ws/key/is_holiday/2011-12-31
+    /ws/key/add_workingdays/2011-12-31/3 (negative number also works)
+    /ws/key/get_workingdays_between/2011-01-01/2011-12-31
+Web interface:
+    - index / presentation page, with link to standard csv to be customized
+    - one page to add a subscriber
+    - one page for subscribers to add their data
+    
+3. First page:
+web/index.php = Controller
+
+============web/index.php===================
+<?php
+
+$app = require __DIR__.'/../src/wolidays.php';
+
+$app->run();
+===============================
+
+===========src/wolidays.php===============
+<?php
+require_once __DIR__.'/../vendor/Silex/autoload.php';
+
+$app = new Silex\Application();
+
+$app->get('/', function(){
+    return 'hello';
+});
+
+return $app;
+============================================
+
+Start using twig now
+
+============src/wolidays.php================
+<?php
+require_once __DIR__.'/../vendor/Silex/autoload.php';
+
+$app = new Silex\Application();
+
+/**
+ * Bootstrapping
+ */
+$app->register(new Silex\Extension\TwigExtension(), array(
+    'twig.path' => __DIR__.'/templates',
+    'twig.class_path' => __DIR__.'/../vendor/Twig/lib',
+));
+
+/**
+ * App definition
+ */
+$app->get('/', function() use($app) {
+    return $app['twig']->render('index.html.twig');
+});
+
+return $app;
+=========================================
+Add template dir
+add layout.html.twig
+add index.html.twig
+
+===============templates/layout.html.twig=================
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="style.css" />
+        <title>{% block title %}Welcome to WoliDays{% endblock %}</title>
+    </head>
+    <body>
+        <div id="content">{% block content %}{% endblock %}</div>
+    </body>
+</html>
+=========================================================
+
+============templates/index.html.twig======================
+{% extends 'layout.html.twig' %}
+
+{% block content %}
+<h1>Welcome to WoliDays</h1>
+<h2>A simple webservice to deal with working days / holidays in software</h2>
+<p>
+    Often times software used in the enterprise world will have to deal with
+    working days and holidays. For example something is booked inside a system,
+    but the booking is only guaranteed for a certain number of working days. Or
+    you need to check how many working days there were between two dates.
+</p>
+<p>
+    A first solution to deal with this is to eliminate the weekends programmatically
+    but then appear the holidays, some are still easy to deal with: new year and
+    Christmas are always coming at the same time. Easter is a bit more tricky, but you
+    could find on the web solutions that calculate easter dates for you. You can package
+    all of this inside a library and distribute it with your software.
+</p>
+<p>
+    Suddenly your software has to be distributed in more than one country. This is where
+    it gets absolutely insane. You can make some of them work together or use some configuration
+    trick to make all of this work together for some countries. However I know
+    for sure you won't be able to make it happen for all countries, because I live
+    in such a country where 3 months before the national holidays you can sometimes
+    not be sure of the dates. Where having national holidays will also add work
+    days on weekends etc...
+</p>
+<p>
+    In this case, it becomes more convenient to just list holidays as you get aware
+    of them. List holidays, but also working days because you never know when
+    a Sunday is going to become a working day instead of a holiday. And to list them
+    by 'places'. One list for France, one for the USA, one for China, one for India / Bangalore,
+    and one for India / Mumbai because... yes, those are different too!
+</p>
+<p>
+    In order to have a central place to update all this information regularly
+    when you are made aware of new holidays, we introduce WoliDays!
+</p>
+<p>
+    WoliDays is a very small webservice that will allow you to create subscribers /
+    channels of holidays (by country for example). Define all the holidays for a given
+    channel in a convenient way. And then provide you with methods to work with it:
+    <ul>
+        <li>Get the number of working days between 2 dates</li>
+        <li>Know when is "3 working days after today"</li>
+        <li>Know if a specific day is a holiday or a working day</li>
+        <li>More to come maybe?</li>
+    </ul>
+</p>
+{% endblock %}
+=================================================================
+
+OK! first page = done!
+
+4. DB
+
+DB defaults:
+    'driver'   => 'pdo_mysql',
+    'dbname'   => null,
+    'host'     => 'localhost',
+    'user'     => 'root',
+    'password' => null,
+
+create new DB in mysql
+
+mysql -u root
+create database wolidays;
+create user 'woli_user' identified by 'password';
+grant all privileges on wolidays.* to 'woli_user';
+
+CREATE TABLE `wolidays`.`day` (
+`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+`channel` VARCHAR( 255 ) NOT NULL ,
+`date` DATE NOT NULL ,
+`is_worked` BOOLEAN NOT NULL
+) ENGINE = InnoDB;
+
+mysql -u woli_user -p wolidays < fixtures.sql
+
+Add doctrine dependency:
+git submodule add git://github.com/doctrine/dbal vendor/Doctrine/
+cd vendor/doctrine
+git submodule init
+git submodule update
+
+================ wolidays.php ==========================
+<?php
+require_once __DIR__.'/../vendor/Silex/autoload.php';
+
+$app = new Silex\Application();
+
+/**
+ * Bootstrapping
+ */
+$app->register(new Silex\Extension\TwigExtension(), array(
+    'twig.path' => __DIR__.'/templates',
+    'twig.class_path' => __DIR__.'/../vendor/Silex/vendor/twig/lib',
+));
+$app['db.options'] = array(
+    'dbname' => 'wolidays',
+    'user' => 'woli_user',
+    'password' => 'password',
+);
+$app->register(new Silex\Extension\DoctrineExtension(), array(
+    'db.dbal.class_path' => __DIR__.'/../vendor/Doctrine/lib',
+    'db.common.class_path' => __DIR__.'/../vendor/Doctrine/lib/vendor/doctrine-common/lib',
+));
+
+/**
+ * App definition
+ */
+$app->get('/', function() use($app) {
+    return $app['twig']->render('index.html.twig');
+});
+
+$app->get('/db', function() use($app){
+    $query = 'select count(*) from days';
+    $result = $app['db']->fetchArray($query);
+    print_r($result);
+});
+
+return $app;
+=========================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

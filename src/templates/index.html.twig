@@ -1,0 +1,50 @@
+{% extends 'layout.html.twig' %}
+
+{% block content %}
+<h1>Welcome to WoliDays</h1>
+<h2>A simple webservice to deal with working days / holidays in software</h2>
+<p>
+    Often times software used in the enterprise world will have to deal with
+    working days and holidays. For example something is booked inside a system,
+    but the booking is only guaranteed for a certain number of working days. Or
+    you need to check how many working days there were between two dates.
+</p>
+<p>
+    A first solution to deal with this is to eliminate the weekends programmatically
+    but then appear the holidays, some are still easy to deal with: new year and
+    Christmas are always coming at the same time. Easter is a bit more tricky, but you
+    could find on the web solutions that calculate easter dates for you. You can package
+    all of this inside a library and distribute it with your software.
+</p>
+<p>
+    Suddenly your software has to be distributed in more than one country. This is where
+    it gets absolutely insane. You can make some of them work together or use some configuration
+    trick to make all of this work together for some countries. However I know
+    for sure you won't be able to make it happen for all countries, because I live
+    in such a country where 3 months before the national holidays you can sometimes
+    not be sure of the dates. Where having national holidays will also add work
+    days on weekends etc...
+</p>
+<p>
+    In this case, it becomes more convenient to just list holidays as you get aware
+    of them. List holidays, but also working days because you never know when
+    a Sunday is going to become a working day instead of a holiday. And to list them
+    by 'places'. One list for France, one for the USA, one for China, one for India / Bangalore,
+    and one for India / Mumbai because... yes, those are different too!
+</p>
+<p>
+    In order to have a central place to update all this information regularly
+    when you are made aware of new holidays, we introduce WoliDays!
+</p>
+<p>
+    WoliDays is a very small webservice that will allow you to create subscribers /
+    channels of holidays (by country for example). Define all the holidays for a given
+    channel in a convenient way. And then provide you with methods to work with it:
+    <ul>
+        <li>Get the number of working days between 2 dates</li>
+        <li>Know when is "3 working days after today"</li>
+        <li>Know if a specific day is a holiday or a working day</li>
+        <li>More to come maybe?</li>
+    </ul>
+</p>
+{% endblock %}
