@@ -17,14 +17,14 @@ CREATE TABLE `wolidays`.`day` (
 `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 `channel` VARCHAR( 255 ) NOT NULL ,
 `date` DATE NOT NULL ,
-`is_worked` BOOLEAN NOT NULL
+`is_holiday` BOOLEAN NOT NULL
 ) ENGINE = InnoDB;
 
 --
 -- Dumping data for table `day`
 --
 
-INSERT INTO `day` (`id`, `channel`, `date`, `is_worked`) VALUES
+INSERT INTO `day` (`id`, `channel`, `date`, `is_holiday`) VALUES
 (1, 'default', '2011-01-01', 0),
 (2, 'default', '2011-01-02', 0),
 (3, 'default', '2011-01-03', 1),
