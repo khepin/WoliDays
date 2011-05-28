@@ -2,6 +2,7 @@
 use Symfony\Component\BrowserKit\Response;
 
 require_once __DIR__.'/../vendor/Silex/autoload.php';
+require_once __DIR__.'/func.php';
 
 $app = new Silex\Application();
 
@@ -69,27 +70,5 @@ $app->get('/add_work_days/{channel}/{start}/{add_days}', function($channel, $sta
     
     return $potential_end->format('Y-m-d');
 });
-
-/**
- * Get the number of worked days between 2 dates.
- *
- * @param Silex\Application $app
- * @param string $channel
- * @param string $start
- * @param string $end
- * @return int
- */
-function getWorkedDaysBetween($app, $channel, $start, $end){
-    //Check how many standard days
-    $diff_days = $start->diff($end, true)->days;
-    
-    //Get number of holidays in the interval
-    $query = 'select count(*) from day where channel = ? and date > ? and date < ?';
-    $result = $app['db']->fetchArray($query, array($channel, $start->format('Y-m-d'), $end->format('Y-m-d')));
-    $holidays = $result[0];
-    $worked = $diff_days - $holidays;
-    
-    return $worked;
-}
 
 return $app;
