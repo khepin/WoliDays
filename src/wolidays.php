@@ -24,43 +24,62 @@ $app->register(new Silex\Extension\DoctrineExtension(), array(
 /**
  * App definition
  */
+
+/**
+ * Index
+ */
 $app->get('/', function() use($app) {
     return $app['twig']->render('index.html.twig');
 });
 
+/**
+ * Will tell if a given day is a holiday or not
+ */
 $app->get('/is_holiday/{channel}/{date}', function($channel, $date) use($app){
     $query = 'select * from day where channel = ? and date = ?';
     $result = $app['db']->fetchArray($query, array($channel, $date));
+    // If we don't have the day in DB, it's considered a worked day
+    if(!is_array($result))
+    {
+        return 0;
+    }
     return $result[3];
 });
 
+/**
+ * Returns the number of worked days between 2 dates
+ */
 $app->get('/work_days_between/{channel}/{start}/{end}', function($channel, $start, $end) use($app){
-    //Check how many standard days
     $start_date = new DateTime($start);
     $end_date = new DateTime($end);
-    $diff_days = $start_date->diff($end_date, true)->days;
     
-    //Get number of holidays in the interval
-    $query = 'select count(*) from day where channel = ? and date > ? and date < ?';
-    $result = $app['db']->fetchArray($query, array($channel, $start, $end));
-    $holidays = $result[0];
-    $worked = $diff_days - $holidays;
-    
-    return $worked;
+    return getWorkedDaysBetween($app, $channel, $start_date, $end_date);
 });
 
+/**
+ * Returns the date of the day X working days after the given one
+ */
 $app->get('/add_work_days/{channel}/{start}/{add_days}', function($channel, $start, $add_days) use($app){
     $start_date = new DateTime($start);
     $potential_end = new DateTime($start);
     $potential_end->add(new DateInterval('P'.$add_days.'D'));
-    while(getWorkedDays($app, $channel, $start_date, $potential_end) != $add_days){
+    while(getWorkedDaysBetween($app, $channel, $start_date, $potential_end) != $add_days){
         $potential_end->add(new DateInterval ('P1D'));
     }
     
     return $potential_end->format('Y-m-d');
 });
 
-function getWorkedDays($app, $channel, $start, $end){
+/**
+ * Get the number of worked days between 2 dates.
+ *
+ * @param Silex\Application $app
+ * @param string $channel
+ * @param string $start
+ * @param string $end
+ * @return int
+ */
+function getWorkedDaysBetween($app, $channel, $start, $end){
     //Check how many standard days
     $diff_days = $start->diff($end, true)->days;
     
